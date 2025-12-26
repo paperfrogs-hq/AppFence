@@ -1,0 +1,22 @@
+[package]
+name = "apf-enforcement"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+apf-core = { path = "../apf-core" }
+apf-policy = { path = "../apf-policy" }
+
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+nix.workspace = true
+tracing.workspace = true
+
+[lib]
+name = "apf_enforcement"
+path = "src/lib.rs"

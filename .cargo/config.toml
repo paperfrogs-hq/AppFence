@@ -1,0 +1,9 @@
+# Cargo configuration for AppFence workspace
+
+[build]
+# Use all CPU cores for parallel compilation
+jobs = 4
+
+[target.x86_64-unknown-linux-gnu]
+# Link optimizations for Linux
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
