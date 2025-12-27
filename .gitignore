@@ -34,3 +34,9 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+
+# Confidential documentation
+ARCHITECTURE.md
+THREAT_MODEL.md
+SCOPE_AND_NON_GOALS.md
+PHASE_0_COMPLETE.md
