@@ -22,6 +22,7 @@ tracing-subscriber.workspace = true
 rusqlite.workspace = true
 nix.workspace = true
 clap.workspace = true
+uuid.workspace = true
 
 [[bin]]
 name = "apfd"

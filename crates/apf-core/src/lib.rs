@@ -1,6 +1,3 @@
-//! AppFence Core
-//!
-//! Shared types, utilities, and application identity logic.
 
 pub mod app_id;
 pub mod types;

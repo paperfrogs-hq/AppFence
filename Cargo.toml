@@ -15,7 +15,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["AppFence Contributors"]
-repository = "https://github.com/yourusername/appfence"
+repository = "https://github.com/paperfrogs-hq/AppFence"
 
 [workspace.dependencies]
 # Async runtime
@@ -48,6 +48,7 @@ nix = { version = "0.27", features = ["process", "signal", "user"] }
 # Security
 sha2 = "0.10"
 hex = "0.4"
+uuid = { version = "1.6", features = ["v4", "serde"] }
 
 # CLI
 clap = { version = "4.4", features = ["derive"] }

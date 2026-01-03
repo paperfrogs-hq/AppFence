@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-/// Permission categories
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum PermissionType {
     Network(NetworkLevel),
@@ -40,7 +39,6 @@ pub enum DeviceType {
     Usb,
 }
 
-/// Enforcement strength levels
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum EnforcementStrength {
     Strong,   // Sandbox + namespace + cgroup
@@ -48,7 +46,6 @@ pub enum EnforcementStrength {
     Weak,     // Audit and warning only
 }
 
-/// Prompt decision
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PromptDecision {
     AllowOnce,
@@ -58,7 +55,6 @@ pub enum PromptDecision {
     AllowDuration(std::time::Duration),
 }
 
-/// Process information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessInfo {
     pub pid: u32,
