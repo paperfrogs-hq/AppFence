@@ -1,4 +1,3 @@
-//! Filesystem enforcement backend
 
 pub struct FilesystemBackend;
 

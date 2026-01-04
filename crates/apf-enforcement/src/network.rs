@@ -1,4 +1,3 @@
-//! Network enforcement backend
 
 pub struct NetworkBackend;
 

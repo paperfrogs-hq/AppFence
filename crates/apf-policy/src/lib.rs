@@ -1,4 +1,3 @@
-//! Policy management and storage
 
 pub mod engine;
 pub mod storage;

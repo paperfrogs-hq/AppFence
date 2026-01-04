@@ -1,4 +1,3 @@
-//! Sandbox backend
 
 pub struct SandboxBackend;
 
