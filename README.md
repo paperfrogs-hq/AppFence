@@ -1,3 +1,4 @@
+
 # AppFence
 
 **Application Permission Firewall for Linux Desktop**
@@ -9,6 +10,8 @@
 [![Platform](https://img.shields.io/badge/platform-Linux%20Wayland-green.svg)](https://wayland.freedesktop.org/)
 
 ---
+
+**Product of [Paperfrogs/Open](https://github.com/paperfrogs-hq)**
 
 ## Security Notice
 

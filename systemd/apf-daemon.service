@@ -1,0 +1,41 @@
+[Unit]
+Description=AppFence System Daemon
+Documentation=https://github.com/yourusername/appfence
+After=network.target dbus.service
+Requires=dbus.service
+
+[Service]
+Type=dbus
+BusName=org.apf.Daemon
+ExecStart=/usr/bin/apfd
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+User=root
+CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_SETUID CAP_SETGID CAP_SYS_ADMIN
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/apf
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+PrivateMounts=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=apfd
+
+[Install]
+WantedBy=multi-user.target
+Alias=appfence-daemon.service

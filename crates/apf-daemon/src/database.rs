@@ -2,7 +2,7 @@
 use anyhow::{Context, Result};
 use rusqlite::{Connection, params};
 use std::path::{Path, PathBuf};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use apf_core::{app_id::AppId, types::{PermissionType, PromptDecision}};
 
@@ -10,33 +10,119 @@ pub struct Database {
     conn: Connection,
     #[allow(dead_code)] // Used by path() getter method
     path: PathBuf,
+    schema_version: i64,
 }
 
 impl Database {
     pub fn new(db_path: impl AsRef<Path>) -> Result<Self> {
         let path = db_path.as_ref().to_path_buf();
-        
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
                 .context("Failed to create database directory")?;
         }
-
         info!("Opening database at: {}", path.display());
-        let conn = Connection::open(&path)
-            .context("Failed to open database")?;
-
+        let conn = match Connection::open(&path) {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("Database open failed: {}. Attempting recovery...", e);
+                // Try to backup and reset corrupted DB
+                let backup_path = path.with_extension("db.bak");
+                if path.exists() {
+                    std::fs::rename(&path, &backup_path)
+                        .context("Failed to backup corrupted database")?;
+                    warn!("Backed up corrupted DB to {}", backup_path.display());
+                }
+                Connection::open(&path)
+                    .context("Failed to open new database after backup")?
+            }
+        };
         conn.execute("PRAGMA foreign_keys = ON", [])
             .context("Failed to enable foreign keys")?;
-
-        let mut db = Self { conn, path };
-        db.initialize_schema()?;
-        
+        let mut db = Self { conn, path, schema_version: 0 };
+        db.run_migrations()?;
         Ok(db)
+    }
+
+    fn run_migrations(&mut self) -> Result<()> {
+        // Create migrations table if not exists
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS migrations (version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL)",
+            [],
+        )?;
+        let version: Option<i64> = {
+            let mut stmt = self.conn.prepare("SELECT MAX(version) FROM migrations")?;
+            stmt.query_row([], |row| row.get(0)).unwrap_or(None)
+        };
+        self.schema_version = version.unwrap_or(0);
+        if self.schema_version < 1 {
+            // Avoid borrow conflict by splitting out schema initialization
+            {
+                let conn = &mut self.conn;
+                info!("Initializing database schema");
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS applications (
+                        app_id TEXT PRIMARY KEY NOT NULL,
+                        binary_hash TEXT,
+                        first_seen INTEGER NOT NULL,
+                        last_seen INTEGER NOT NULL
+                    )",
+                    [],
+                ).context("Failed to create applications table")?;
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS policies (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        app_id TEXT NOT NULL,
+                        permission_type TEXT NOT NULL,
+                        decision TEXT NOT NULL,
+                        expires_at INTEGER,
+                        created_at INTEGER NOT NULL,
+                        FOREIGN KEY (app_id) REFERENCES applications(app_id) ON DELETE CASCADE,
+                        UNIQUE(app_id, permission_type)
+                    )",
+                    [],
+                ).context("Failed to create policies table")?;
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS audit_log (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp INTEGER NOT NULL,
+                        app_id TEXT NOT NULL,
+                        pid INTEGER NOT NULL,
+                        uid INTEGER NOT NULL,
+                        permission_type TEXT NOT NULL,
+                        decision TEXT NOT NULL,
+                        granted INTEGER NOT NULL,
+                        was_prompted INTEGER NOT NULL,
+                        FOREIGN KEY (app_id) REFERENCES applications(app_id)
+                    )",
+                    [],
+                ).context("Failed to create audit_log table")?;
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_policies_app_id ON policies(app_id)",
+                    [],
+                )?;
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp DESC)",
+                    [],
+                )?;
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_audit_app_id ON audit_log(app_id)",
+                    [],
+                )?;
+                info!("Database schema initialized successfully");
+            }
+            self.conn.execute(
+                "INSERT INTO migrations (version, applied_at) VALUES (?1, ?2)",
+                rusqlite::params![1, current_timestamp()],
+            )?;
+            self.schema_version = 1;
+            info!("Migration v1 applied");
+        }
+        // Add further migrations here
+        Ok(())
     }
 
     fn initialize_schema(&mut self) -> Result<()> {
         info!("Initializing database schema");
-
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS applications (
                 app_id TEXT PRIMARY KEY NOT NULL,
@@ -46,7 +132,6 @@ impl Database {
             )",
             [],
         ).context("Failed to create applications table")?;
-
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS policies (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +145,6 @@ impl Database {
             )",
             [],
         ).context("Failed to create policies table")?;
-
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS audit_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,22 +160,18 @@ impl Database {
             )",
             [],
         ).context("Failed to create audit_log table")?;
-
         self.conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_policies_app_id ON policies(app_id)",
             [],
         )?;
-
         self.conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp DESC)",
             [],
         )?;
-
         self.conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_audit_app_id ON audit_log(app_id)",
             [],
         )?;
-
         info!("Database schema initialized successfully");
         Ok(())
     }

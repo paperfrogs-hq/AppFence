@@ -1,0 +1,8 @@
+# DBus Service Configuration for AppFence Daemon
+# Place in /usr/share/dbus-1/system-services/org.apf.Daemon.service
+
+[D-BUS Service]
+Name=org.apf.Daemon
+Exec=/usr/bin/apfd
+User=root
+SystemdService=apf-daemon.service
